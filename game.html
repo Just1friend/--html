@@ -1,0 +1,1300 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>逃离古堡 - 困难随机地图</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Microsoft YaHei', sans-serif;
+            background: linear-gradient(135deg, #0f0c29, #302b63, #24243e);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .game-container {
+            background: rgba(0, 0, 0, 0.9);
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+            max-width: 950px;
+            width: 100%;
+            padding: 30px;
+            animation: fadeIn 0.5s ease;
+            border: 2px solid #8b0000;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        h1 {
+            text-align: center;
+            color: #8b0000;
+            margin-bottom: 10px;
+            font-size: 2.5em;
+            text-shadow: 0 0 20px rgba(139, 0, 0, 0.8);
+        }
+
+        .difficulty-badge {
+            text-align: center;
+            color: #ff4444;
+            margin-bottom: 20px;
+            font-size: 1.2em;
+            font-weight: bold;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.6; }
+        }
+
+        .map-info {
+            text-align: center;
+            color: #999;
+            margin-bottom: 20px;
+            font-size: 0.9em;
+        }
+
+        .status-bar {
+            background: linear-gradient(135deg, #1a1a1a, #2d2d2d);
+            color: white;
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            display: flex;
+            justify-content: space-around;
+            flex-wrap: wrap;
+            gap: 10px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5);
+            border: 1px solid #8b0000;
+        }
+
+        .status-item {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            font-weight: bold;
+        }
+
+        .status-item span {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 5px 10px;
+            border-radius: 5px;
+            border: 1px solid #8b0000;
+        }
+
+        .status-item.critical span {
+            background: rgba(139, 0, 0, 0.5);
+            border-color: #ff0000;
+            animation: criticalBlink 0.5s infinite;
+        }
+
+        @keyframes criticalBlink {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.3; }
+        }
+
+        .game-area {
+            background: #0a0a0a;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 20px;
+            min-height: 350px;
+            max-height: 450px;
+            overflow-y: auto;
+            box-shadow: inset 0 2px 10px rgba(0, 0, 0, 0.8);
+            border: 1px solid #333;
+            color: #cccccc;
+        }
+
+        .game-text {
+            line-height: 1.8;
+        }
+
+        .items-list {
+            background: rgba(139, 0, 0, 0.1);
+            padding: 10px;
+            border-radius: 5px;
+            margin-top: 10px;
+            border-left: 4px solid #8b0000;
+        }
+
+        .shop-list {
+            background: rgba(255, 152, 0, 0.1);
+            padding: 10px;
+            border-radius: 5px;
+            margin-top: 10px;
+            border-left: 4px solid #ff9800;
+        }
+
+        .controls {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+            flex-wrap: wrap;
+        }
+
+        .direction-btn {
+            flex: 1;
+            min-width: 80px;
+            padding: 12px;
+            background: linear-gradient(135deg, #333, #222);
+            color: #ccc;
+            border: 1px solid #555;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: bold;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5);
+        }
+
+        .direction-btn:hover:not(:disabled) {
+            background: linear-gradient(135deg, #444, #333);
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(139, 0, 0, 0.3);
+        }
+
+        .direction-btn:disabled {
+            background: #1a1a1a;
+            color: #333;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .action-buttons {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+            flex-wrap: wrap;
+        }
+
+        .action-btn {
+            flex: 1;
+            min-width: 100px;
+            padding: 10px;
+            background: linear-gradient(135deg, #8b0000, #660000);
+            color: white;
+            border: 1px solid #990000;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.3s ease;
+        }
+
+        .action-btn:hover:not(:disabled) {
+            background: linear-gradient(135deg, #990000, #770000);
+            transform: translateY(-2px);
+        }
+
+        .action-btn:disabled {
+            background: #1a1a1a;
+            color: #333;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .action-btn.shop {
+            background: linear-gradient(135deg, #ff9800, #f57c00);
+        }
+
+        .action-btn.shop:hover:not(:disabled) {
+            background: linear-gradient(135deg, #f57c00, #ef6c00);
+        }
+
+        .action-btn.defend {
+            background: linear-gradient(135deg, #2196f3, #1976d2);
+        }
+
+        .action-btn.defend:hover:not(:disabled) {
+            background: linear-gradient(135deg, #1976d2, #1565c0);
+        }
+
+        .message {
+            background: rgba(139, 0, 0, 0.2);
+            border: 1px solid #8b0000;
+            color: #ff6666;
+            padding: 10px;
+            border-radius: 5px;
+            margin-top: 10px;
+            animation: slideIn 0.3s ease;
+        }
+
+        .message.critical {
+            background: rgba(255, 0, 0, 0.3);
+            border-color: #ff0000;
+            color: #ff9999;
+        }
+
+        .message.heal {
+            background: rgba(76, 175, 80, 0.2);
+            border-color: #4caf50;
+            color: #81c784;
+        }
+
+        .message.defend {
+            background: rgba(33, 150, 243, 0.2);
+            border-color: #2196f3;
+            color: #64b5f6;
+        }
+
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateX(-20px); }
+            to { opacity: 1; transform: translateX(0); }
+        }
+
+        .victory {
+            background: linear-gradient(135deg, #8b0000, #4d0000);
+            color: white;
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+            font-size: 1.2em;
+            animation: pulse 1s infinite;
+            box-shadow: 0 0 30px rgba(139, 0, 0, 0.8);
+        }
+
+        .game-over {
+            background: linear-gradient(135deg, #4d0000, #1a0000);
+            color: #ff6666;
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+            font-size: 1.2em;
+            box-shadow: 0 0 30px rgba(139, 0, 0, 0.5);
+        }
+
+        .restart-btn {
+            margin-top: 15px;
+            padding: 12px 30px;
+            background: linear-gradient(135deg, #8b0000, #660000);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: bold;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5);
+        }
+
+        .restart-btn:hover {
+            transform: scale(1.05);
+            box-shadow: 0 5px 20px rgba(139, 0, 0, 0.4);
+        }
+
+        .game-area::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .game-area::-webkit-scrollbar-track {
+            background: #1a1a1a;
+            border-radius: 10px;
+        }
+
+        .game-area::-webkit-scrollbar-thumb {
+            background: #444;
+            border-radius: 10px;
+        }
+
+        .combat-info {
+            background: rgba(139, 0, 0, 0.2);
+            border: 1px solid #8b0000;
+            padding: 10px;
+            border-radius: 5px;
+            margin: 10px 0;
+            color: #ff9999;
+        }
+
+        .trap-warning {
+            color: #ff0000;
+            font-weight: bold;
+            animation: criticalBlink 0.5s infinite;
+        }
+
+        .curse-warning {
+            color: #9c27b0;
+            font-weight: bold;
+        }
+
+        .start-bonus {
+            color: #4caf50;
+            font-weight: bold;
+        }
+
+        .potion-bonus {
+            color: #00bcd4;
+            font-weight: bold;
+        }
+
+        .defend-bonus {
+            color: #2196f3;
+            font-weight: bold;
+        }
+
+        .counter-attack {
+            color: #ff9800;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <div class="game-container">
+        <h1>🏰 逃离古堡 🏰</h1>
+        <div class="difficulty-badge">⚠️ 困难随机地图 ⚠️</div>
+        <div class="map-info" id="mapInfo">地图种子: #000000</div>
+        
+        <div class="status-bar">
+            <div class="status-item" id="healthStatus">
+                ❤️ 生命值: <span id="health">80</span>
+            </div>
+            <div class="status-item" id="hungerStatus">
+                🍖 饥饿度: <span id="hunger">80</span>
+            </div>
+            <div class="status-item">
+                💰 金币: <span id="gold">30</span>
+            </div>
+            <div class="status-item">
+                ⚔️ 武器: <span id="weapon">无</span>
+            </div>
+            <div class="status-item">
+                🔑 钥匙: <span id="key">0</span>/3
+            </div>
+            <div class="status-item">
+                🧪 药水: <span id="potion">2</span>
+            </div>
+            <div class="status-item">
+                🍞 食物: <span id="food">1</span>
+            </div>
+            <div class="status-item" id="curseStatus">
+                😈 诅咒: <span id="curse">无</span>
+            </div>
+        </div>
+
+        <div class="game-area" id="gameArea">
+            <div class="game-text" id="gameText"></div>
+        </div>
+
+        <div class="controls">
+            <button class="direction-btn" onclick="game.move('北')">北 ↑</button>
+            <button class="direction-btn" onclick="game.move('西')">西 ←</button>
+            <button class="direction-btn" onclick="game.move('东')">东 →</button>
+            <button class="direction-btn" onclick="game.move('南')">南 ↓</button>
+        </div>
+
+        <div class="action-buttons">
+            <button class="action-btn" onclick="game.takeItem()">📦 拾取物品</button>
+            <button class="action-btn" onclick="game.usePotion()" id="usePotionBtn">🧪 使用药水</button>
+            <button class="action-btn" onclick="game.eat()" id="eatBtn">🍞 进食</button>
+            <button class="action-btn" onclick="game.search()" id="searchBtn">🔍 搜索</button>
+            <button class="action-btn shop" onclick="game.openShop()" id="shopBtn" style="display:none;">🏪 商店</button>
+            <button class="action-btn" onclick="game.buy('potion')" id="buyPotionBtn" style="display:none;">💊 买药水(50金)</button>
+            <button class="action-btn" onclick="game.buy('food')" id="buyFoodBtn" style="display:none;">🍞 买食物(25金)</button>
+            <button class="action-btn" onclick="game.buy('weapon')" id="buyWeaponBtn" style="display:none;">⚔️ 买武器(120金)</button>
+            <button class="action-btn" onclick="game.buy('blessing')" id="buyBlessingBtn" style="display:none;">✨ 祝福(100金)</button>
+            <button class="action-btn" onclick="game.fight()" id="fightBtn" style="display:none;">⚔️ 攻击</button>
+            <button class="action-btn defend" onclick="game.defend()" id="defendBtn" style="display:none;">🛡️ 强力防御</button>
+            <button class="action-btn" onclick="game.run()" id="runBtn" style="display:none;">🏃 逃跑</button>
+        </div>
+
+        <button class="restart-btn" onclick="game.restart()" style="display:none;" id="restartBtn">🔄 重新开始</button>
+    </div>
+
+    <script>
+        class TextAdventureGame {
+            constructor() {
+                this.mapSeed = Math.floor(Math.random() * 1000000);
+                this.random = this.seedRandom(this.mapSeed);
+                
+                this.player = {
+                    health: 80,
+                    maxHealth: 80,
+                    hunger: 80,
+                    maxHunger: 80,
+                    gold: 30,
+                    weapon: null,
+                    weaponLevel: 0,
+                    keys: 0,
+                    potions: 2,
+                    food: 1,
+                    defense: false,
+                    cursed: false,
+                    curseTurns: 0,
+                    defendStreak: 0, // 连续防御次数
+                    lastActionWasDefend: false
+                };
+                
+                this.currentRoom = 'entrance';
+                this.gameOver = false;
+                this.victory = false;
+                this.inCombat = false;
+                this.currentEnemy = null;
+                this.turnCount = 0;
+                this.trapTriggered = {};
+                this.shopOpen = false;
+                
+                this.generateMap();
+                this.init();
+            }
+            
+            seedRandom(seed) {
+                return function() {
+                    seed = (seed * 9301 + 49297) % 233280;
+                    return seed / 233280;
+                }
+            }
+            
+            generateMap() {
+                const roomTemplates = {
+                    entrance: {
+                        name: '入口',
+                        baseDescription: '你站在古堡的入口处，寒风从门缝吹入。',
+                        items: [],
+                        hasShop: false,
+                        hasTrap: false
+                    },
+                    hall: {
+                        name: '大厅',
+                        baseDescription: '这是一个宽敞的大厅，墙上挂着扭曲的画像。',
+                        possibleItems: ['生锈的钥匙'],
+                        hasShop: false,
+                        hasTrap: true,
+                        enemies: ['哥布林战士', '骷髅兵']
+                    },
+                    storage: {
+                        name: '储藏室',
+                        baseDescription: '储藏室里堆满了杂物，空气中弥漫着腐朽味。',
+                        possibleItems: ['破损的剑'],
+                        hasShop: false,
+                        hasTrap: false,
+                        enemies: ['巨鼠']
+                    },
+                    library: {
+                        name: '图书馆',
+                        baseDescription: '图书馆里摆满了书架，书籍散发着不祥的气息。',
+                        possibleItems: ['魔法钥匙'],
+                        hasShop: false,
+                        hasTrap: true,
+                        enemies: ['书灵', '怨灵']
+                    },
+                    kitchen: {
+                        name: '厨房',
+                        baseDescription: '厨房里一片狼藉，地上有暗红色的污迹。',
+                        possibleItems: ['发霉的食物'],
+                        hasShop: false,
+                        hasTrap: true,
+                        enemies: ['食尸鬼']
+                    },
+                    dungeon: {
+                        name: '地牢',
+                        baseDescription: '地牢里充满了绝望的气息，三扇铁门阻挡去路。',
+                        items: [],
+                        hasShop: false,
+                        hasTrap: false,
+                        isFinal: true
+                    },
+                    shop: {
+                        name: '神秘商店',
+                        baseDescription: '你发现了一个神秘的商店，商人用诡异的眼神看着你。',
+                        items: [],
+                        hasShop: true,
+                        hasTrap: false
+                    },
+                    treasure: {
+                        name: '宝藏室',
+                        baseDescription: '🎉 你终于来到了传说中的宝藏室！',
+                        possibleItems: ['诅咒的宝藏'],
+                        hasShop: false,
+                        hasTrap: false
+                    },
+                    armory: {
+                        name: '武器库',
+                        baseDescription: '这里存放着各种武器，但似乎有守护者。',
+                        possibleItems: ['精钢剑'],
+                        hasShop: false,
+                        hasTrap: false,
+                        enemies: ['盔甲守卫', '武器大师']
+                    },
+                    garden: {
+                        name: '花园',
+                        baseDescription: '这是一个荒废的花园，植物呈现出诡异的紫色。',
+                        possibleItems: ['毒草', '腐烂的果实'],
+                        hasShop: false,
+                        hasTrap: true,
+                        enemies: ['藤蔓怪']
+                    },
+                    crypt: {
+                        name: '地下墓穴',
+                        baseDescription: '墓穴里弥漫着死亡气息，你听到了低语声。',
+                        possibleItems: ['古老钥匙'],
+                        hasShop: false,
+                        hasTrap: true,
+                        enemies: ['僵尸', '幽灵']
+                    },
+                    laboratory: {
+                        name: '炼金实验室',
+                        baseDescription: '实验室里摆满了瓶瓶罐罐，冒着奇怪的颜色。',
+                        possibleItems: ['失败药水'],
+                        hasShop: false,
+                        hasTrap: true,
+                        enemies: ['炼金失败体']
+                    }
+                };
+                
+                this.rooms = {};
+                const roomTypes = Object.keys(roomTemplates);
+                const roomCount = 12 + Math.floor(this.random() * 4);
+                
+                for (let i = 0; i < roomCount; i++) {
+                    const roomType = roomTypes[Math.floor(this.random() * roomTypes.length)];
+                    const roomId = `room_${i}`;
+                    const template = roomTemplates[roomType];
+                    
+                    this.rooms[roomId] = {
+                        ...template,
+                        description: template.baseDescription,
+                        exits: {},
+                        searched: false,
+                        trap: template.hasTrap && this.random() < 0.4,
+                        trapDamage: 15 + Math.floor(this.random() * 15)
+                    };
+                    
+                    if (template.possibleItems && this.random() < 0.6) {
+                        const item = template.possibleItems[Math.floor(this.random() * template.possibleItems.length)];
+                        this.rooms[roomId].items = [item];
+                    } else if (!template.items) {
+                        this.rooms[roomId].items = [];
+                    }
+                }
+                
+                this.rooms.entrance = {
+                    name: '入口',
+                    description: '你站在古堡的入口处，寒风从门缝吹入。',
+                    exits: {},
+                    items: [],
+                    hasShop: false,
+                    searched: false,
+                    trap: false
+                };
+                
+                this.rooms.dungeon = {
+                    name: '地牢',
+                    description: '地牢里充满了绝望的气息，三扇铁门阻挡去路。',
+                    exits: {},
+                    items: [],
+                    hasShop: false,
+                    searched: false,
+                    trap: false,
+                    locked: true,
+                    requiredKeys: 3
+                };
+                
+                this.rooms.treasure = {
+                    name: '宝藏室',
+                    description: '🎉 你终于来到了传说中的宝藏室！',
+                    exits: {},
+                    items: ['诅咒的宝藏'],
+                    hasShop: false,
+                    searched: false,
+                    trap: false
+                };
+                
+                this.connectRooms();
+                this.addShop();
+                this.distributeKeys();
+            }
+            
+            connectRooms() {
+                const roomIds = Object.keys(this.rooms).filter(id => 
+                    id !== 'entrance' && id !== 'dungeon' && id !== 'treasure'
+                );
+                
+                const connectedRooms = ['entrance'];
+                let unconnectedRooms = [...roomIds];
+                
+                while (unconnectedRooms.length > 0) {
+                    const fromRoom = connectedRooms[Math.floor(this.random() * connectedRooms.length)];
+                    const toRoomIndex = Math.floor(this.random() * unconnectedRooms.length);
+                    const toRoom = unconnectedRooms[toRoomIndex];
+                    
+                    const directions = ['北', '南', '东', '西'];
+                    const direction = directions[Math.floor(this.random() * directions.length)];
+                    const opposite = { '北': '南', '南': '北', '东': '西', '西': '东' }[direction];
+                    
+                    if (!this.rooms[fromRoom].exits[direction] && !this.rooms[toRoom].exits[opposite]) {
+                        this.rooms[fromRoom].exits[direction] = toRoom;
+                        this.rooms[toRoom].exits[opposite] = fromRoom;
+                        
+                        connectedRooms.push(toRoom);
+                        unconnectedRooms.splice(toRoomIndex, 1);
+                    }
+                }
+                
+                const randomRoom = connectedRooms[Math.floor(this.random() * (connectedRooms.length - 1)) + 1];
+                this.rooms[randomRoom].exits['密道'] = 'dungeon';
+                this.rooms.dungeon.exits['铁门'] = 'treasure';
+            }
+            
+            addShop() {
+                const roomIds = Object.keys(this.rooms).filter(id => 
+                    id !== 'entrance' && id !== 'dungeon' && id !== 'treasure' && !this.rooms[id].hasShop
+                );
+                
+                if (roomIds.length > 0) {
+                    const shopRoom = roomIds[Math.floor(this.random() * roomIds.length)];
+                    const originalExits = this.rooms[shopRoom].exits;
+                    
+                    this.rooms[shopRoom] = {
+                        name: '神秘商店',
+                        description: '你发现了一个神秘的商店，商人用诡异的眼神看着你。',
+                        exits: originalExits,
+                        items: [],
+                        hasShop: true,
+                        searched: false,
+                        trap: false
+                    };
+                }
+            }
+            
+            distributeKeys() {
+                const roomIds = Object.keys(this.rooms).filter(id => 
+                    id !== 'entrance' && id !== 'dungeon' && id !== 'treasure' && !this.rooms[id].hasShop
+                );
+                
+                const shuffled = roomIds.sort(() => this.random() - 0.5);
+                const keyTypes = ['生锈的钥匙', '魔法钥匙', '古老钥匙'];
+                
+                for (let i = 0; i < 3 && i < shuffled.length; i++) {
+                    this.rooms[shuffled[i]].items = [keyTypes[i]];
+                }
+            }
+            
+            init() {
+                document.getElementById('mapInfo').textContent = `地图种子: #${this.mapSeed.toString().padStart(6, '0')}`;
+                this.updateDisplay();
+                this.addText('🏰 欢迎来到《逃离古堡》困难随机地图版！🏰\n\n');
+                this.addText('<div class="start-bonus">🎁 幸运开局：你获得了一些初始补给！</div>');
+                this.addText('<div class="potion-bonus">💊 药水强化：失败药水效果提升！</div>');
+                this.addText('<div class="defend-bonus">🛡️ 防御强化：强力防御系统！</div>');
+                this.addText('⚠️ 困难模式特性：');
+                this.addText('• 诅咒系统会削弱你的能力');
+                this.addText('• 商店价格昂贵');
+                this.addText('• 敌人更强更危险');
+                this.addText('• 陷阱伤害很高');
+                this.addText('\n🛡️ 强力防御特性：');
+                this.addText('• 减少50%受到的伤害');
+                this.addText('• 30%几率反击敌人');
+                this.addText('• 连续防御有额外效果');
+                this.addText('• 防御时减少饥饿消耗');
+                this.addText('\n你的目标是收集3把钥匙，打开地牢的大门。');
+                this.addText('合理使用防御技能，祝你好运！');
+                
+                this.statusTimer = setInterval(() => {
+                    if (!this.gameOver && !this.victory && !this.inCombat) {
+                        this.player.hunger -= 3;
+                        if (this.player.hunger <= 0) {
+                            this.player.hunger = 0;
+                            this.player.health -= 8;
+                            this.showMessage('你饿得虚弱不堪，失去了8点生命值！', 'critical');
+                        }
+                        
+                        if (this.player.cursed) {
+                            this.player.curseTurns--;
+                            this.player.health -= 2;
+                            this.showMessage('诅咒在你体内肆虐...失去了2点生命值！', 'critical');
+                            
+                            if (this.player.curseTurns <= 0) {
+                                this.player.cursed = false;
+                                this.showMessage('诅咒终于消散了！');
+                            }
+                        }
+                        
+                        this.updateDisplay();
+                        
+                        if (this.player.health <= 0) {
+                            this.gameOver = true;
+                            this.showGameOver();
+                        }
+                    }
+                }, 4000);
+            }
+            
+            updateDisplay() {
+                document.getElementById('health').textContent = this.player.health;
+                document.getElementById('hunger').textContent = this.player.hunger;
+                document.getElementById('gold').textContent = this.player.gold;
+                document.getElementById('weapon').textContent = this.player.weapon || '无';
+                document.getElementById('key').textContent = this.player.keys;
+                document.getElementById('potion').textContent = this.player.potions;
+                document.getElementById('food').textContent = this.player.food;
+                document.getElementById('curse').textContent = this.player.cursed ? `${this.player.curseTurns}回合` : '无';
+                
+                const healthStatus = document.getElementById('healthStatus');
+                const hungerStatus = document.getElementById('hungerStatus');
+                const curseStatus = document.getElementById('curseStatus');
+                
+                if (this.player.health <= 20) {
+                    healthStatus.classList.add('critical');
+                } else {
+                    healthStatus.classList.remove('critical');
+                }
+                
+                if (this.player.hunger <= 20) {
+                    hungerStatus.classList.add('critical');
+                } else {
+                    hungerStatus.classList.remove('critical');
+                }
+                
+                if (this.player.cursed) {
+                    curseStatus.classList.add('critical');
+                } else {
+                    curseStatus.classList.remove('critical');
+                }
+                
+                document.getElementById('usePotionBtn').disabled = this.player.potions <= 0;
+                document.getElementById('eatBtn').disabled = this.player.food <= 0;
+                document.getElementById('searchBtn').disabled = this.rooms[this.currentRoom].searched;
+                
+                const room = this.rooms[this.currentRoom];
+                const hasShop = room.hasShop;
+                document.getElementById('shopBtn').style.display = hasShop && !this.shopOpen ? 'inline-block' : 'none';
+                document.getElementById('buyPotionBtn').style.display = this.shopOpen ? 'inline-block' : 'none';
+                document.getElementById('buyFoodBtn').style.display = this.shopOpen ? 'inline-block' : 'none';
+                document.getElementById('buyWeaponBtn').style.display = this.shopOpen && !this.player.weapon ? 'inline-block' : 'none';
+                document.getElementById('buyBlessingBtn').style.display = this.shopOpen ? 'inline-block' : 'none';
+                
+                ['北', '南', '东', '西', '密道', '铁门'].forEach(dir => {
+                    const btn = Array.from(document.querySelectorAll('.direction-btn'))
+                        .find(b => b.textContent.includes(dir === '密道' ? '密' : dir === '铁门' ? '铁' : dir));
+                    if (btn) {
+                        btn.disabled = !room.exits[dir];
+                    }
+                });
+                
+                document.getElementById('fightBtn').style.display = this.inCombat ? 'inline-block' : 'none';
+                document.getElementById('defendBtn').style.display = this.inCombat ? 'inline-block' : 'none';
+                document.getElementById('runBtn').style.display = this.inCombat ? 'inline-block' : 'none';
+            }
+            
+            addText(text) {
+                const gameText = document.getElementById('gameText');
+                gameText.innerHTML += `<div style="margin-bottom: 10px;">${text.replace(/\n/g, '<br>')}</div>`;
+                const gameArea = document.getElementById('gameArea');
+                gameArea.scrollTop = gameArea.scrollHeight;
+            }
+            
+            showMessage(text, type = 'normal') {
+                const className = type === 'critical' ? 'message critical' : 
+                                 type === 'heal' ? 'message heal' : 
+                                 type === 'defend' ? 'message defend' : 'message';
+                this.addText(`<div class="${className}">${text}</div>`);
+            }
+            
+            move(direction) {
+                if (this.gameOver || this.victory || this.inCombat) return;
+                
+                this.turnCount++;
+                const room = this.rooms[this.currentRoom];
+                
+                if (room.exits[direction]) {
+                    const nextRoom = room.exits[direction];
+                    const targetRoom = this.rooms[nextRoom];
+                    
+                    if (this.shopOpen) {
+                        this.shopOpen = false;
+                    }
+                    
+                    if (nextRoom === 'dungeon' && targetRoom.locked) {
+                        if (this.player.keys >= targetRoom.requiredKeys) {
+                            targetRoom.locked = false;
+                            this.currentRoom = 'treasure';
+                            this.victory = true;
+                            this.addText('🔑 你用3把钥匙打开了巨大的铁门！');
+                            this.showVictory();
+                        } else {
+                            this.showMessage(`铁门被锁住了，你还需要 ${targetRoom.requiredKeys - this.player.keys} 把钥匙。`, 'critical');
+                        }
+                    } else {
+                        this.currentRoom = nextRoom;
+                        this.addText(`你向${direction}边走去...`);
+                        
+                        if (targetRoom.trap && !this.trapTriggered[nextRoom]) {
+                            this.triggerTrap(nextRoom);
+                        }
+                        
+                        if (targetRoom.enemies && this.random() < 0.6) {
+                            const enemyType = targetRoom.enemies[Math.floor(this.random() * targetRoom.enemies.length)];
+                            this.encounterEnemy(enemyType);
+                        } else {
+                            this.showRoom();
+                        }
+                    }
+                }
+                
+                this.updateDisplay();
+            }
+            
+            triggerTrap(roomName) {
+                const room = this.rooms[roomName];
+                this.trapTriggered[roomName] = true;
+                
+                this.addText('<div class="trap-warning">⚠️ 陷阱触发！</div>');
+                
+                if (this.random() < 0.3) {
+                    this.showMessage('你敏捷地躲过了陷阱！');
+                } else {
+                    let damage = room.trapDamage;
+                    if (this.player.cursed) damage += 5;
+                    
+                    this.player.health -= damage;
+                    this.showMessage(`你失去了 ${damage} 点生命值！`, 'critical');
+                    
+                    if (this.random() < 0.2 && !this.player.cursed) {
+                        this.player.cursed = true;
+                        this.player.curseTurns = 10 + Math.floor(this.random() * 10);
+                        this.showMessage('你被诅咒了！', 'critical');
+                    }
+                    
+                    if (this.player.health <= 0) {
+                        this.gameOver = true;
+                        this.showGameOver();
+                    }
+                }
+            }
+            
+            showRoom() {
+                const room = this.rooms[this.currentRoom];
+                this.addText(`【${room.name}】`);
+                this.addText(room.description);
+                
+                const exits = Object.keys(room.exits);
+                if (exits.length > 0) {
+                    this.addText(`出口: ${exits.join(', ')}`);
+                }
+                
+                if (room.items.length > 0) {
+                    let itemsText = '<div class="items-list">你看到了：';
+                    room.items.forEach(item => {
+                        itemsText += `• ${item} `;
+                    });
+                    itemsText += '</div>';
+                    this.addText(itemsText);
+                }
+                
+                if (this.currentRoom === 'dungeon' && room.locked) {
+                    this.showMessage(`巨大的铁门被锁住了，你需要 ${room.requiredKeys} 把钥匙才能打开。`, 'critical');
+                }
+            }
+            
+            takeItem() {
+                if (this.gameOver || this.victory || this.inCombat) return;
+                
+                const room = this.rooms[this.currentRoom];
+                if (room.items.length === 0) {
+                    this.showMessage('这里没有物品可以拾取。');
+                    return;
+                }
+                
+                const item = room.items[0];
+                room.items.splice(0, 1);
+                
+                switch(item) {
+                    case '生锈的钥匙':
+                    case '魔法钥匙':
+                    case '古老钥匙':
+                        this.player.keys++;
+                        this.showMessage(`你获得了 ${item}！(${this.player.keys}/3)`);
+                        break;
+                    case '破损的剑':
+                    case '精钢剑':
+                        this.player.weapon = item;
+                        this.showMessage(`你装备了 ${item}！`);
+                        break;
+                    case '失败药水':
+                        this.player.potions++;
+                        this.showMessage('你获得了失败药水...效果不确定。');
+                        break;
+                    case '发霉的食物':
+                    case '腐烂的果实':
+                        this.player.food++;
+                        this.showMessage(`你获得了 ${item}...看起来不太安全。`);
+                        break;
+                    case '毒草':
+                        this.player.health -= 10;
+                        this.showMessage('你误食了毒草！失去了10点生命值！', 'critical');
+                        if (this.player.health <= 0) {
+                            this.gameOver = true;
+                            this.showGameOver();
+                        }
+                        break;
+                    case '诅咒的宝藏':
+                        this.player.gold += 200;
+                        this.showMessage('你获得了诅咒的宝藏！但黑暗力量侵蚀了你...');
+                        this.player.cursed = true;
+                        this.player.curseTurns = 20;
+                        if (this.player.health <= 0) {
+                            this.gameOver = true;
+                            this.showGameOver();
+                        }
+                        break;
+                }
+                
+                this.updateDisplay();
+            }
+            
+            search() {
+                if (this.gameOver || this.victory || this.inCombat) return;
+                
+                const room = this.rooms[this.currentRoom];
+                if (room.searched) {
+                    this.showMessage('你已经搜索过这个房间了。');
+                    return;
+                }
+                
+                room.searched = true;
+                this.addText('你仔细搜索了这个房间...');
+                
+                if (this.random() < 0.5) {
+                    const findings = [
+                        { item: '金币', chance: 0.3, amount: () => Math.floor(this.random() * 10) + 3 },
+                        { item: '失败药水', chance: 0.2 },
+                        { item: '发霉的食物', chance: 0.2 },
+                        { item: '诅咒', chance: 0.3 }
+                    ];
+                    
+                    for (const finding of findings) {
+                        if (this.random() < finding.chance) {
+                            if (finding.item === '金币') {
+                                const amount = finding.amount();
+                                this.player.gold += amount;
+                                this.showMessage(`搜索发现了 ${amount} 枚金币！`);
+                            } else if (finding.item === '诅咒') {
+                                this.player.cursed = true;
+                                this.player.curseTurns = 15;
+                                this.showMessage('搜索时你触发了诅咒！', 'critical');
+                            } else {
+                                if (finding.item === '失败药水') this.player.potions++;
+                                else if (finding.item === '发霉的食物') this.player.food++;
+                                this.showMessage(`搜索发现了一个${finding.item}！`);
+                            }
+                            break;
+                        }
+                    }
+                } else {
+                    this.showMessage('搜索没有发现任何有用的东西。');
+                }
+                
+                this.updateDisplay();
+            }
+            
+            openShop() {
+                this.shopOpen = true;
+                this.addText('<div class="shop-list">🏪 商店物品（价格昂贵）：</div>');
+                this.addText('💊 强化药水 - 恢复35生命值 (50金币)');
+                this.addText('🍞 发霉食物 - 恢复30饥饿度 (25金币)');
+                if (!this.player.weapon) {
+                    this.addText('⚔️ 精钢剑 - 增加攻击力 (120金币)');
+                }
+                this.addText('✨ 祝福 - 移除诅咒 (100金币)');
+                this.updateDisplay();
+            }
+            
+            buy(item) {
+                const prices = { potion: 50, food: 25, weapon: 120, blessing: 100 };
+                const price = prices[item];
+                
+                if (this.player.gold < price) {
+                    this.showMessage('金币不足！');
+                    return;
+                }
+                
+                this.player.gold -= price;
+                
+                switch(item) {
+                    case 'potion':
+                        this.player.potions++;
+                        this.showMessage('你购买了强化药水！');
+                        break;
+                    case 'food':
+                        this.player.food++;
+                        this.showMessage('你购买了发霉的食物！');
+                        break;
+                    case 'weapon':
+                        this.player.weapon = '精钢剑';
+                        this.showMessage('你购买了精钢剑！');
+                        break;
+                    case 'blessing':
+                        if (this.player.cursed) {
+                            this.player.cursed = false;
+                            this.player.curseTurns = 0;
+                            this.showMessage('祝福驱散了诅咒！');
+                        } else {
+                            this.showMessage('你没有诅咒，祝福浪费了...');
+                        }
+                        break;
+                }
+                
+                this.updateDisplay();
+            }
+            
+            usePotion() {
+                if (this.player.potions <= 0) return;
+                
+                this.player.potions--;
+                let healAmount = 35;
+                
+                if (this.random() < 0.15) {
+                    healAmount = 20;
+                    this.player.hunger -= 5;
+                    this.showMessage(`药水略有副作用！恢复了 ${healAmount} 点生命值，稍微感到饥饿...`, 'heal');
+                } else {
+                    this.showMessage(`你使用了强化药水，恢复了 ${healAmount} 点生命值！`, 'heal');
+                }
+                
+                this.player.health = Math.min(this.player.maxHealth, this.player.health + healAmount);
+                this.updateDisplay();
+            }
+            
+            eat() {
+                if (this.player.food <= 0) return;
+                
+                this.player.food--;
+                let hungerAmount = 30;
+                
+                if (this.random() < 0.4) {
+                    hungerAmount = 15;
+                    this.player.health -= 5;
+                    this.showMessage(`食物变质了！仅恢复了 ${hungerAmount} 点饥饿度，还失去了5点生命值！`, 'critical');
+                } else {
+                    this.showMessage(`你吃了食物，恢复了 ${hungerAmount} 点饥饿度！`);
+                }
+                
+                this.player.hunger = Math.min(this.player.maxHunger, this.player.hunger + hungerAmount);
+                this.updateDisplay();
+            }
+            
+            encounterEnemy(enemyType) {
+                this.inCombat = true;
+                this.player.defendStreak = 0; // 重置防御连击
+                this.player.lastActionWasDefend = false;
+                
+                const enemyStats = {
+                    '哥布林战士': { health: 40, damage: 15, gold: 10 },
+                    '骷髅兵': { health: 50, damage: 20, gold: 15 },
+                    '巨鼠': { health: 30, damage: 12, gold: 8 },
+                    '书灵': { health: 35, damage: 18, gold: 20 },
+                    '怨灵': { health: 45, damage: 22, gold: 25 },
+                    '食尸鬼': { health: 55, damage: 25, gold: 30 },
+                    '盔甲守卫': { health: 60, damage: 28, gold: 35 },
+                    '武器大师': { health: 70, damage: 30, gold: 40 },
+                    '藤蔓怪': { health: 40, damage: 16, gold: 15 },
+                    '僵尸': { health: 45, damage: 18, gold: 20 },
+                    '幽灵': { health: 35, damage: 20, gold: 25 },
+                    '炼金失败体': { health: 50, damage: 24, gold: 30 }
+                };
+                
+                this.currentEnemy = {
+                    type: enemyType,
+                    ...enemyStats[enemyType],
+                    maxHealth: enemyStats[enemyType].health
+                };
+                this.addText(`⚔️ 你遭遇了 ${enemyType}！`);
+                this.showCombatInfo();
+                this.updateDisplay();
+            }
+            
+            showCombatInfo() {
+                if (!this.currentEnemy) return;
+                
+                let defendInfo = '';
+                if (this.player.defendStreak > 0) {
+                    defendInfo = `<br>🛡️ 防御连击 x${this.player.defendStreak} - 下次防御效果增强！`;
+                }
+                
+                this.addText(`<div class="combat-info">
+                    ${this.currentEnemy.type} - 生命值: ${this.currentEnemy.health}/${this.currentEnemy.maxHealth}<br>
+                    你的生命值: ${this.player.health}/${this.player.maxHealth}
+                    ${this.player.cursed ? '<br>⚠️ 诅咒削弱了你的力量！' : ''}
+                    ${defendInfo}
+                </div>`);
+            }
+            
+            fight() {
+                if (!this.inCombat || !this.currentEnemy) return;
+                
+                this.player.defendStreak = 0; // 攻击重置防御连击
+                this.player.lastActionWasDefend = false;
+                
+                let damage = 8;
+                if (this.player.weapon) {
+                    damage += this.player.weapon === '精钢剑' ? 8 : 4;
+                }
+                
+                if (this.player.cursed) {
+                    damage = Math.floor(damage * 0.7);
+                }
+                
+                damage = Math.floor(damage + Math.random() * 8);
+                
+                this.currentEnemy.health -= damage;
+                this.addText(`你对 ${this.currentEnemy.type} 造成了 ${damage} 点伤害！`);
+                
+                if (this.currentEnemy.health <= 0) {
+                    this.victoryCombat();
+                } else {
+                    this.enemyAttack();
+                }
+                
+                this.updateDisplay();
+            }
+            
+            defend() {
+                if (!this.inCombat || !this.currentEnemy) return;
+                
+                this.player.defense = true;
+                this.player.defendStreak++;
+                this.player.lastActionWasDefend = true;
+                
+                // 计算防御效果
+                let damageReduction = 0.5; // 基础50%减伤
+                
+                // 连续防御加成
+                if (this.player.defendStreak >= 2) {
+                    damageReduction += 0.1 * (this.player.defendStreak - 1); // 每次额外10%
+                    damageReduction = Math.min(damageReduction, 0.8); // 最多80%减伤
+                }
+                
+                this.addText(`🛡️ 你采取了强力防御姿态！减伤${Math.floor(damageReduction * 100)}%！`);
+                
+                if (this.player.defendStreak >= 2) {
+                    this.showMessage(`防御连击 x${this.player.defendStreak}！防御效果增强！`, 'defend');
+                }
+                
+                // 防御时减少饥饿消耗
+                if (this.random() < 0.5) {
+                    this.player.hunger = Math.min(this.player.maxHunger, this.player.hunger + 2);
+                    this.showMessage('专注防御让你稍微恢复了精力！', 'defend');
+                }
+                
+                this.enemyAttack(damageReduction);
+                this.player.defense = false;
+                this.updateDisplay();
+            }
+            
+            enemyAttack(damageReduction = 0.4) {
+                if (!this.currentEnemy) return;
+                
+                let damage = this.currentEnemy.damage;
+                
+                // 应用防御减伤
+                if (this.player.lastActionWasDefend) {
+                    damage = Math.floor(damage * (1 - damageReduction));
+                }
+                
+                // 诅咒增加受到的伤害
+                if (this.player.cursed) {
+                    damage = Math.floor(damage * 1.3);
+                }
+                
+                this.player.health -= damage;
+                this.addText(`${this.currentEnemy.type} 对你造成了 ${damage} 点伤害！`);
+                
+                // 反击机制
+                if (this.player.lastActionWasDefend && this.random() < 0.3) {
+                    const counterDamage = Math.floor(5 + Math.random() * 10);
+                    this.currentEnemy.health -= counterDamage;
+                    this.addText(`<div class="counter-attack">⚔️ 反击！你对 ${this.currentEnemy.type} 造成了 ${counterDamage} 点伤害！</div>`);
+                    
+                    if (this.currentEnemy.health <= 0) {
+                        this.victoryCombat();
+                        return;
+                    }
+                }
+                
+                if (this.player.health <= 0) {
+                    this.gameOver = true;
+                    this.showGameOver();
+                } else {
+                    this.showCombatInfo();
+                }
+            }
+            
+            victoryCombat() {
+                this.inCombat = false;
+                const enemy = this.currentEnemy;
+                this.player.gold += enemy.gold;
+                this.addText(`你击败了 ${enemy.type}！获得 ${enemy.gold} 枚金币！`);
+                
+                // 防御连击奖励
+                if (this.player.defendStreak >= 3) {
+                    const bonusHealth = 5 * this.player.defendStreak;
+                    this.player.health = Math.min(this.player.maxHealth, this.player.health + bonusHealth);
+                    this.showMessage(`完美防御！恢复了 ${bonusHealth} 点生命值！`, 'heal');
+                }
+                
+                this.player.hunger -= 8;
+                if (this.player.hunger < 0) this.player.hunger = 0;
+                
+                this.currentEnemy = null;
+                this.player.defendStreak = 0;
+                this.player.lastActionWasDefend = false;
+                this.showRoom();
+                this.updateDisplay();
+            }
+            
+            run() {
+                if (!this.inCombat) return;
+                
+                this.player.defendStreak = 0;
+                this.player.lastActionWasDefend = false;
+                
+                if (this.random() < 0.4) {
+                    this.inCombat = false;
+                    this.currentEnemy = null;
+                    this.currentRoom = 'entrance';
+                    this.showMessage('你狼狈地逃跑了，但回到了入口！');
+                    this.showRoom();
+                } else {
+                    this.showMessage('逃跑失败！');
+                    this.enemyAttack();
+                }
+                
+                this.updateDisplay();
+            }
+            
+            showVictory() {
+                clearInterval(this.statusTimer);
+                this.addText('<div class="victory">🎉 你成功逃离了古堡！但付出了惨重的代价... 🎉</div>');
+                this.addText(`最终状态: 生命值 ${this.player.health} | 饥饿度 ${this.player.hunger} | 金币 ${this.player.gold}`);
+                this.addText(`地图种子: #${this.mapSeed.toString().padStart(6, '0')} | 生存回合数: ${this.turnCount}`);
+                document.getElementById('restartBtn').style.display = 'block';
+            }
+            
+            showGameOver() {
+                clearInterval(this.statusTimer);
+                this.addText('<div class="game-over">💀 你死在了古堡中... 💀</div>');
+                this.addText(`地图种子: #${this.mapSeed.toString().padStart(6, '0')} | 生存回合数: ${this.turnCount}`);
+                document.getElementById('restartBtn').style.display = 'block';
+            }
+            
+            restart() {
+                clearInterval(this.statusTimer);
+                location.reload();
+            }
+        }
+        
+        const game = new TextAdventureGame();
+    </script>
+</body>
+</html>
